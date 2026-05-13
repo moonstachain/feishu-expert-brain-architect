@@ -36,14 +36,15 @@ metadata:
 | 想把 sandbox 里 mature 的概念 promote 到生产 wiki | [§ Promote 流程](#promote-流程)（未实现，等 v1） |
 | 想把飞书 mature 概念回流到 LLM-Wiki | [§ 与 LLM-Wiki sync](#与-llm-wiki-sync-未实现-等-v1)（未实现，等 v1） |
 
-## Architecture（B-营业窗口路径）
+## Architecture（α 3-layer，v0.2）
 
-LLM-Wiki = **私有真相源**（Obsidian / markdown / wikilinks / 4-layer）。
-飞书【专家大脑】= **协同营业窗口 + 对外暴露层**（Bitable + Wiki + 画板）。
+- **Layer 0** — LLM-Wiki (Obsidian): concept body 唯一主存储；`concepts/<slug>.md`
+- **Layer 1** — 飞书原力 OS 工作台 5.0 base: 索引 + 治理 + 驾驶舱（T08 知识概念索引 / T16 妙记元数据索引 / SP5 dashboard）
+- **Layer 2** — 飞书【专家大脑】wiki space: 协同入口（synthesis docx + 协同画板，挂在「30-产出」节点下）
 
-**Sync 边界**：只 sync `maturity=mature`；stub/developing 各自待在原地；insights 永不 sync。
+**Sync 边界**：concept body **只**在 Layer 0；Layer 1 T08 wiki_path 指向 Layer 0；mature 概念可写 syntheses/ 在 Layer 0。Insights 永不 sync。
 
-完整设计 + 6 lens 映射 + DNA 取舍表 → [references/architecture-card.md](references/architecture-card.md)
+完整设计 + 6 lens 映射 + 边界铁律 → [references/architecture-card.md](references/architecture-card.md)
 
 ## 冷启动流程
 
@@ -63,16 +64,21 @@ lark-cli minutes +search --start <YYYY-MM-DD> --end <YYYY-MM-DD> --format table 
 
 **N=1 dry-run 原则**：一次只抽 1 场，3-5 个 concept。选场次时避开含**客户/财务/合规**敏感信息的会，优先纯方法论会。
 
-### Step 2：建 sandbox + Bitable
+### Step 2：抽取一场会议（α-path）
 
-参数化脚本：[scripts/bootstrap_sandbox.sh](scripts/bootstrap_sandbox.sh)
+参数化脚本：[scripts/extract_one_meeting.sh](scripts/extract_one_meeting.sh)
 
 ```bash
-bash scripts/bootstrap_sandbox.sh <space_id> <parent_node_token> <sandbox_title>
-# 输出：sandbox_node_token / bitable_app_token / table_id
+bash scripts/extract_one_meeting.sh \
+  <minute_token> <workstation_base_token> \
+  <t08_table_id> <t16_table_id> <t16_record_id> \
+  <expert_brain_space_id> <prod_node_token>
+# 输出：transcript path + extraction_context.json（喂给 Claude 继续抽取）
 ```
 
-12 字段 schema 详解 + 字段顺序 + 类型坑 → [references/schema-t01-concepts.md](references/schema-t01-concepts.md)
+> v0.1 用的 `scripts/bootstrap_sandbox.sh` 已 DEPRECATED（运行时显警告）。新流程不再建 sandbox，直接写工作台 5.0 base。
+
+T08（12 字段）+ T16（9 字段）schema 详解 → [references/schema-t08-concept-index.md](references/schema-t08-concept-index.md)
 
 ### Step 3：拉妙记转写
 
@@ -84,16 +90,20 @@ lark-cli vc +notes --minute-tokens <minute_token> --output-dir ./transcripts
 
 ⚠️ `--output-dir` 必须**相对路径**（详见 [references/pitfalls.md#9](references/pitfalls.md)）。
 
-### Step 4：AI 抽 3-5 个概念卡 → 写 Bitable
+### Step 4：AI 抽 3-5 个概念卡 → 写 LLM-Wiki + T08 索引
 
-**硬约束**：每条 concept body **必须**以 `【原文 <speaker> HH:MM】"..."` 开头，再写 AI 概括。无 quote 即失败。
+**硬约束**：每条 concept body **必须**以 `## 原文 quote` section + `> 「<quote>」—— <speaker> @ HH:MM` 开头。无 quote 即失败。
 
-抽取 prompt 模板 + cell value 格式 → [references/n1-dry-run-playbook.md#step-4](references/n1-dry-run-playbook.md)
+抽取 prompt 模板 + 8 步流水线 + cell value 格式 → [references/extraction-playbook.md](references/extraction-playbook.md)
 
 ```bash
+# 1. cd LLM-Wiki, write concepts/<slug>.md per concept
+cd /Users/liming/Documents/LLM-Wiki && # ... Write markdown
+
+# 2. write T08 index rows (fields-in-order, NOT array-of-objects)
 lark-cli base +record-batch-create \
-  --base-token <app_token> --table-id <table_id> \
-  --json @records.json
+  --base-token <workstation_base_token> --table-id <t08_table_id> \
+  --json @t08_rows.json
 ```
 
 ### Step 5：综合页 + 协同画板
@@ -132,27 +142,29 @@ lark-cli base +record-batch-update --base-token <app_token> --table-id <table_id
 
 ## 增量 ingest
 
-适用：sandbox/Bitable 已建好，要追加一场妙记。
+适用：工作台 5.0 base 已迁移完成（T08 + T16 已存在），要追加一场新妙记。
 
-跳过 Step 2，直接跑 Step 3-5。新概念追加到同一 T01_concepts 表，新综合页作为 sandbox 的子节点。
+直接跑 [extraction-playbook.md](references/extraction-playbook.md) 的 Step 1-8。新 concept 正文写到 LLM-Wiki `concepts/`，新 T08 索引行追加到工作台 5.0 base，新综合页 docx + 协同画板挂到飞书【专家大脑】wiki 的「30-产出」节点下。
 
 ## 失真护栏
 
 | 护栏 | 来源 | 落地方式 |
 |---|---|---|
-| **N=1 原则** | dyad-card P7 母题 | 一次只抽 1 场，3-5 概念 |
-| **原文 quote 强制** | dry-run 用户拍板 | body 字段开头必带 `【原文 ...】"..."` |
-| **sandbox 隔离** | LLM-Wiki "no insights write" 规则 | 全部产物在 `99-Sandbox-<date>` 节点下 |
-| **lens 多选** | LLM-Wiki 6 lens 设计 | lens 字段必须 `multiple=true`（坑 1） |
+| **N=1 抽取原则** | dyad-card P7 母题 | 一次只抽 1 场，3-5 概念；不批量 |
+| **原文 quote 强制** | dry-run + Phase 2 用户拍板 | body 必含 `## 原文 quote` + `> 「...」—— <speaker> @ HH:MM` |
+| **Layer 0 唯一正文源** | α 3-layer 设计 | concept body **只**在 LLM-Wiki `concepts/<slug>.md`，不在 Bitable |
+| **lens 多选** | LLM-Wiki 6 lens 设计 | T08 用 `category` 字段（不映射 lens）；lens 单独存 Layer 0 frontmatter |
 | **代理绕开** | 实测 EOF | docs/whiteboard `+update` 必须 `LARK_CLI_NO_PROXY=1` |
-| **N=1 上限** | experimental 状态 | 用户超过 N=3 / 50 概念时，本 skill 必须升 v1 |
+| **wiki_path 不要 markdown 包装** | Phase 2 实测 | 写 `concepts/<slug>.md` 纯文本，lark-cli 不会自动包 markdown |
+| **N=3 上限** | developing 状态 | 用户超过 N=5 / 30 concepts / 5 mature 时，本 skill 必须升 v1.0 |
 
-完整 9 个 lark-cli 坑 → [references/pitfalls.md](references/pitfalls.md)
+完整 13 个 schema drift signals → [docs/drift-signals.md](docs/drift-signals.md)
+完整 lark-cli 9 个坑 → [references/pitfalls.md](references/pitfalls.md)
 
 ## 与 LLM-Wiki sync（未实现，等 v1）
 
 设计已写在 [architecture-card.md#sync-边界](references/architecture-card.md)，但脚本未落地。触发条件：
-- T01_concepts 至少 30 行
+- T08_知识概念索引 至少 30 行
 - 至少 5 行 maturity=mature
 - 用户明确说「回流到 LLM-Wiki」
 
@@ -169,9 +181,12 @@ v1 之前手工 sync：人类在 Obsidian 里另写一份 concept 页，参考�
 
 ## Sources
 
-本 skill 蒸馏自 2026-05-12 一次 **N=1 dry-run 实战**（一次 33 分钟会议妙记 → 5 张概念卡 + 1 篇综合页 + 1 张协同画板，全链 25 分钟跑通）。
+本 skill v0.2 = 2026-05-12 N=1 sandbox dry-run + 2026-05-13 N=2 workstation 5.0 dry-run（共 3 次实战）：
 
-具体产物 URL 含真实 tenant / 文档 token，不对外公开。如需 dry-run 参考样本，请按 [`references/n1-dry-run-playbook.md`](references/n1-dry-run-playbook.md) 在你自己的飞书 tenant 跑一次。
+- N=1: 1 场 33 min 妙记 → 5 concepts → sandbox（已 deprecated，30 天保留）
+- N=2 (2 场, 2026-05-13): 专家IP复盘 42m → 5 concepts；教育项目视频运营 35m → 5 concepts → 工作台 5.0 base T08 + LLM-Wiki concepts/
+
+具体产物 URL 含真实 tenant / 文档 token，不对外公开。如需参考样本，按 [`references/extraction-playbook.md`](references/extraction-playbook.md) 在你自己的飞书 tenant 跑一次。
 
 理论框架借鉴：[LLM-Wiki](https://github.com/moonstachain/llm-wiki)（4-layer 架构 / 6 ontology lens / write-back rule / metabolism dashboard）。
 
@@ -179,7 +194,7 @@ v1 之前手工 sync：人类在 Obsidian 里另写一份 concept 页，参考�
 
 | 版本 | 触发条件 | 加什么 |
 |---|---|---|
-| **v0.1 (now)** | N=1 实战 | 5 步流水线 + 12 字段 schema + 9 坑 |
-| v0.2 | N=2 通过 | 改 schema 漂移点；如发现 lens 不够用，扩 MOC |
-| v0.3 | N=3 通过 | 加 Promote 流程；改名为 stable |
-| v1.0 | N≥5 + 至少 30 concepts + 至少 5 mature | sync 回流 LLM-Wiki 脚本；删 experimental |
+| v0.1 | N=1 sandbox 实战 | 5 步流水线 + 12 字段 sandbox schema + 9 lark-cli 坑 |
+| **v0.2 (now)** | N=2 workstation 5.0 实战 + 13 drift signals + α 3-layer 架构 | T08/T16 schema 修正 + extract_one_meeting.sh + dashboard config + spec/plan/drift docs |
+| v0.3 | N=3 通过 + Promote 流程上线 | sandbox → 工作台 5.0 promote 自动化 |
+| v1.0 | N≥5 + 至少 30 concepts in T08 + 至少 5 mature | sync 回流 LLM-Wiki 自动脚本；删 developing 标签 |
