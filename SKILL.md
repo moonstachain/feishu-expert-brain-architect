@@ -7,11 +7,12 @@ description: >
   树）。
   当用户说「把会议沉淀成知识库」「专家大脑」「飞书侧知识中枢」「把妙记变成概念卡」
   「borrow LLM-Wiki 思路到飞书」时使用本 skill。
-maturity: experimental
+maturity: developing
 since: 2026-05-12
-sample_size: N=1
-sample_run: 99-Sandbox-2026-05-12 / 5 concepts from 妙记 <minute_token>
-upgrade_after: N=2 + N=3 dry-run 全部通过
+last_bump: 2026-05-13
+sample_size: N=3
+sample_run: 2026-05-13 SP2 N=2 in workstation 5.0 base (2 meetings, 10 new concepts)
+upgrade_after: N≥5 + 30 concepts in T08 + ≥5 mature
 metadata:
   requires:
     bins: ["lark-cli"]
@@ -19,7 +20,12 @@ metadata:
   cliHelp: "lark-cli --version (must be ≥ 1.0.19)"
 ---
 
-> ⚠️ **experimental**：本 skill 由 2026-05-12 一次 N=1 dry-run 蒸馏得出，仅在 1 场妙记 + 5 个概念上验证过。N=2 / N=3 验证完成前，**不要扩到全公司生产数据**，先在 sandbox 节点跑。
+> 🟡 **v0.2 developing** (bumped 2026-05-13): Architecture pivoted from "B path" (飞书 sandbox 主存储) → "α path" (3-layer: LLM-Wiki 正文 / 工作台 5.0 索引+治理 / 飞书 wiki 协同).
+>
+> Concept body is NO LONGER in Bitable. Look in `/Users/liming/Documents/LLM-Wiki/concepts/<slug>.md`.
+> Sandbox base (`RRRtbWseDaeBaYsn0TYceziJnZc`) is DEPRECATED but kept 30 days for N=1 evidence.
+>
+> See [docs/spec-v0.2.md](docs/spec-v0.2.md) for full architecture; [docs/plan-v0.2.md](docs/plan-v0.2.md) for implementation; [docs/drift-signals.md](docs/drift-signals.md) for 13 schema drift signals discovered during Phase 1-3.
 
 ## 决策树
 

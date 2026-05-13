@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+echo "⚠️ DEPRECATED v0.1: this script created sandbox base." >&2
+echo "v0.2 uses workstation 5.0 architecture. See scripts/extract_one_meeting.sh." >&2
+echo "Continuing in 5 sec... (Ctrl+C to abort)" >&2
+sleep 5
 # bootstrap_sandbox.sh
 # 一键建 sandbox 节点 + T01_concepts Bitable + 12 字段
 #
