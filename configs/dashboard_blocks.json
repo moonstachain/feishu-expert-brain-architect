@@ -1,0 +1,119 @@
+{
+  "dashboard_name": "随身企业大脑驾驶舱 v0.1",
+  "base_token": "WIMLbfyD1afZvssmud5cGD1InVf",
+  "dashboard_id": "blkqLURiBeA31Hi8",
+  "created_at": "2026-05-13",
+  "blocks": [
+    {
+      "id": "b1",
+      "title": "大O 进度",
+      "table_id": "tblmSaqAuDIaVwls",
+      "table_name": "T01_战略任务追踪",
+      "type": "pie",
+      "group_by": "task_status",
+      "block_id": "chtcn8hKalqyOWWcxDFC2TtaCjd",
+      "ray_quote": "大O 几个板块",
+      "data_config": {
+        "table_name": "T01_战略任务追踪",
+        "count_all": true,
+        "group_by": [{"field_name": "task_status", "mode": "integrated"}]
+      },
+      "layout": {"x": 4, "y": 2, "w": 4, "h": 8}
+    },
+    {
+      "id": "b2",
+      "title": "概念库分布",
+      "table_id": "tbl3i70xgMXnzW0R",
+      "table_name": "T08_知识概念索引",
+      "type": "bar",
+      "group_by": "category",
+      "block_id": "chtcnCLqIHgAVikAO1jYqZw9qYd",
+      "ray_quote": "知识管理",
+      "data_config": {
+        "table_name": "T08_知识概念索引",
+        "count_all": true,
+        "group_by": [{"field_name": "category", "mode": "integrated", "sort": {"type": "value", "order": "desc"}}]
+      },
+      "layout": {"x": 8, "y": 2, "w": 4, "h": 8}
+    },
+    {
+      "id": "b3",
+      "title": "妙记本周流入",
+      "table_id": "tbluBbCuUW9PUcCu",
+      "table_name": "T16_meeting_inventory",
+      "type": "statistics",
+      "filter": "extracted_concept_count > 0",
+      "block_id": "chtcnaDPxErAYkZEU3MP2P9xmJd",
+      "ray_quote": "逐字稿小卡片",
+      "data_config": {
+        "table_name": "T16_meeting_inventory",
+        "count_all": true,
+        "filter": {
+          "conjunction": "and",
+          "conditions": [{"field_name": "extracted_concept_count", "operator": "isGreater", "value": 0}]
+        }
+      },
+      "layout": {"x": 0, "y": 0, "w": 6, "h": 2}
+    },
+    {
+      "id": "b4",
+      "title": "协作日志 stream",
+      "table_id": "tblMV2R4szaxuEjO",
+      "table_name": "T03_日终协作摘要",
+      "type": "column",
+      "sort_by": "date asc",
+      "block_id": "chtcnrPadTGzu3i9al6i7Cm2Vgd",
+      "ray_quote": "养卡",
+      "schema_drift_note": "spec requested 'timeline' type; not supported by lark-cli. Used 'column' chart (governance_score AVERAGE by date) as closest substitute.",
+      "data_config": {
+        "table_name": "T03_日终协作摘要",
+        "series": [{"field_name": "governance_score", "rollup": "AVERAGE"}],
+        "group_by": [{"field_name": "date", "mode": "integrated", "sort": {"type": "group", "order": "asc"}}]
+      },
+      "layout": {"x": 0, "y": 6, "w": 4, "h": 4}
+    },
+    {
+      "id": "b5",
+      "title": "进化时间线",
+      "table_id": "tbl9NeJOEflQm9ql",
+      "table_name": "T02_进化闭环追踪",
+      "type": "line",
+      "block_id": "chtcnnc4Zn7sZqb95CZhlr1R5Sg",
+      "ray_quote": "关停并转",
+      "schema_drift_note": "spec said 'by date' but T02 has no datetime field; used trigger_type (select) as group dimension and score_after AVERAGE as metric.",
+      "data_config": {
+        "table_name": "T02_进化闭环追踪",
+        "series": [{"field_name": "score_after", "rollup": "AVERAGE"}],
+        "group_by": [{"field_name": "trigger_type", "mode": "integrated", "sort": {"type": "value", "order": "desc"}}]
+      },
+      "layout": {"x": 0, "y": 2, "w": 4, "h": 4}
+    },
+    {
+      "id": "b6",
+      "title": "信息健康",
+      "table_id": "tblb1KJ4s5el1w4W",
+      "table_name": "T11_信息健康度汇总",
+      "type": "statistics",
+      "block_id": "chtcnhgDIAoFZkW6L4oGPl6O8he",
+      "ray_quote": "辨识度",
+      "schema_drift_note": "spec said 'latest row' but statistics type only supports series+rollup or count_all; used wiki_knowledge_pages MAX as proxy for latest knowledge page count.",
+      "data_config": {
+        "table_name": "T11_信息健康度汇总",
+        "series": [{"field_name": "wiki_knowledge_pages", "rollup": "MAX"}]
+      },
+      "layout": {"x": 6, "y": 0, "w": 6, "h": 2}
+    }
+  ],
+  "notes": [
+    "Dashboard created on 2026-05-13 as part of Phase 3 SP5.",
+    "All 6 blocks created successfully via lark-cli base +dashboard-block-create.",
+    "Layout auto-arranged via +dashboard-arrange (server-side smart layout).",
+    "SCHEMA DRIFT: 'timeline' block type is NOT supported by lark-cli. Available types: column|bar|line|pie|ring|area|combo|scatter|funnel|wordCloud|radar|statistics|text. Block 4 uses 'column' as substitute.",
+    "SCHEMA DRIFT: data_config uses 'table_name' (string, display name), NOT 'table_id'. This is critical.",
+    "SCHEMA DRIFT: 'series' and 'count_all' are mutually exclusive. Statistics cards either count records OR aggregate a numeric field.",
+    "SCHEMA DRIFT: T02 has no datetime field at top level; 'by date' grouping substituted with trigger_type select field.",
+    "T01 status field is named 'task_status' (not 'status') with options: completed|in_progress|blocked|pending|active.",
+    "T08 category field confirmed: governance|skill|architecture|methodology|tool|domain|evolution.",
+    "T16 extracted_concept_count is type 'number'; filter uses isGreater operator with numeric value."
+  ]
+}
